@@ -81,6 +81,7 @@ Definition source: Opta Match Event Definitions
 # Code and output
 
 ```sql
+-- Getting the basic summed up stats
 WITH basic_stats AS (
     SELECT 
         match_id,
@@ -96,7 +97,7 @@ WITH basic_stats AS (
     FROM 
         cl_match_stats
 ),
-
+-- Ranking each match by each stat
 ranks AS (
     SELECT 
         match_id,
@@ -109,7 +110,7 @@ ranks AS (
     FROM 
         cl_match_stats
 ),
-
+-- Weighting the ranks
 weighted_ranks as (
     SELECT 
         b.*,
@@ -121,15 +122,20 @@ weighted_ranks as (
             r.xg_combined_rank * 1.1 +
             r.coefficient_difference_rank * 1.4 
         ) / 8.1, 2) AS weighted_average_rank
+    -- I needed the basic stats for the final select statement
     FROM 
         basic_stats b
+    -- I need the ranks CTE for weighting
     INNER JOIN 
         ranks r ON b.match_id = r.match_id
     ORDER BY
         weighted_average_rank
 )
 
+-- I listed all the columns instead of using *
+-- allowing me to place the main answer column second
 SELECT 
+    match_id,
     DENSE_RANK() OVER (ORDER BY weighted_average_rank ASC) AS entertainment_rank,
     phase,
     home_team,
@@ -140,13 +146,12 @@ SELECT
     big_chances_combined,
     expected_goals_combined,
     coefficient_difference,
-    weighted_average_rank,
-    match_id
+    weighted_average_rank
 FROM 
     weighted_ranks;
 ```
 
-**The most entertaining match of the 24/25 UEFA Champions League season is:**
+**The ranking of all 24/25 UEFA Champions League matches by entertainment (exlcuding the final):**
 
 | match_id | entertainment_rank |       phase       |        home_team       |        away_team       | goals_combined | shots_combined | shots_on_target_combined | big_chances_combined | expected_goals_combined | coefficient_difference | weighted_average_rank |
 |:--------:|:------------------:|:-----------------:|:----------------------:|:----------------------:|:--------------:|:--------------:|:------------------------:|:--------------------:|:-----------------------:|:----------------------:|:---------------------:|
